@@ -1,225 +1,120 @@
-#============================================================
+# -*- coding: utf-8 -*-
+# ============================================================
 #
-#  Deep Learning BLW Filtering
-#  Data preparation
+#  QTDatabase Preparation 
+#  
 #
-#  author: Francisco Perdigon Romero
-#  email: fperdigon88@gmail.com
-#  github id: fperdigon
 #
-#===========================================================
+# the basis for training purposes. The QTDatabase.mat is the result of this script. 
+# This result is organized in a cell array in which
+# each ECG signal contains its corresponding beats separated beat by beat.
+# It was selected the 1st channel of the ECG signals and the sample rate
+# was changed to 360Hz.
 
+
+#  Before running this section, download the QTdatabase, 
+#  and install the Physionet WFDB package
+#
+#  QTdatabase: https://physionet.org/static/published-projects/qtdb/qt-database-1.0.0.zip
+#  Installing Physionet WFDB package run from your terminal:
+#    $ pip install wfdb 
+#
+# ============================================================
+#
+#  authors: David Castro Piñol, Francisco Perdigon Romero
+#  email: davidpinyol91@gmail.com, fperdigon88@gmail.com
+#  github id: Dacapi91, fperdigon
+#
+# ============================================================
+
+import glob
 import numpy as np
+from scipy.signal import resample_poly
+import wfdb
+import math
 import _pickle as pickle
-from Data_Preparation import Prepare_QTDatabase, Prepare_NSTDB
-
-def Data_Preparation(noise_version=1):
-
-    print('Getting the Data ready ... ')
-
-    # The seed is used to ensure the ECG always have the same contamination level
-    # this enhance reproducibility
-    seed = 1234
-    np.random.seed(seed=seed)
-
-    Prepare_QTDatabase.prepare()
-    Prepare_NSTDB.prepare()
-
-    # Load QT Database
-    with open('data/QTDatabase.pkl', 'rb') as input:
-        # dict {register_name: beats_list}
-        qtdb = pickle.load(input)
-
-    # Load NSTDB
-    with open('data/NoiseALL.pkl', 'rb') as input:
-        nstdb = pickle.load(input)
-
-    #####################################
-    # NSTDB
-    #####################################
-
-    [bw_signals, em_signals, ma_signals] = nstdb
-    bw_signals = np.array(bw_signals)
-    em_signals = np.array(em_signals)
-    ma_signals = np.array(ma_signals)
 
 
-    bw_noise_channel1_a = bw_signals[0:int(bw_signals.shape[0]/2), 0]
-    bw_noise_channel1_b = bw_signals[int(bw_signals.shape[0]/2):-1, 0]
-    bw_noise_channel2_a = bw_signals[0:int(bw_signals.shape[0]/2), 1]
-    bw_noise_channel2_b = bw_signals[int(bw_signals.shape[0]/2):-1, 1]
+def prepare(QTpath='data/qt-database-1.0.0/'):
+    # Desired sampling frecuency
+    newFs = 360
 
+    # Preprocessing signals
+    namesPath = glob.glob(QTpath + "/*.dat")
 
+    # final list that will contain all signals and beats processed
+    QTDatabaseSignals = dict()
 
-    #####################################
-    # Data split
-    #####################################
-    if noise_version == 1:
-        noise_test = bw_noise_channel2_b
-        noise_train = bw_noise_channel1_a
-    elif noise_version == 2:
-        noise_test = bw_noise_channel1_b
-        noise_train = bw_noise_channel2_a
-    else:
-        raise Exception("Sorry, noise_version should be 0 or 1")
+    register_name = None
+    for i in namesPath:
 
-    #####################################
-    # QTDatabase
-    #####################################
+        # reading signals
+        aux = i.split('.dat')
+        register_name = aux[0].split('/')[-1]
+        signal, fields = wfdb.rdsamp(aux[0])
+        qu = len(signal)
 
-    beats_train = []
-    beats_test = []
+        # reading annotations
+        ann = wfdb.rdann(aux[0], 'pu1')
+        anntype = ann.symbol
+        annSamples = ann.sample
 
-    # QTDatabese signals Dataset splitting. Considering the following link
-    # https://www.physionet.org/physiobank/database/qtdb/doc/node3.html
-    #  Distribution of the 105 records according to the original Database.
-    #  | MIT-BIH | MIT-BIH |   MIT-BIH  |  MIT-BIH  | ESC | MIT-BIH | Sudden |
-    #  | Arrhyt. |  ST DB  | Sup. Vent. | Long Term | STT | NSR DB	| Death  |
-    #  |   15    |   6	   |     13     |     4     | 33  |  10	    |  24    |
-    #
-    # The two random signals of each pathology will be keep for testing set.
-    # The following list was used
-    # https://www.physionet.org/physiobank/database/qtdb/doc/node4.html
-    # Selected test signal amount (14) represent ~13 % of the total
+        # Obtaining P wave start positions
+        Anntype = np.array(anntype)
+        idx = Anntype == 'p'
+        Pidx = annSamples[idx]
+        idxS = Anntype == '('
+        Sidx = annSamples[idxS]
+        idxR = Anntype == 'N'
+        Ridx = annSamples[idxR]
 
-    test_set = ['sel123',  # Record from MIT-BIH Arrhythmia Database
-                'sel233',  # Record from MIT-BIH Arrhythmia Database
+        ind = np.zeros(len(Pidx))
 
-                'sel302',  # Record from MIT-BIH ST Change Database
-                'sel307',  # Record from MIT-BIH ST Change Database
+        for j in range(len(Pidx)):
+            arr = np.where(Pidx[j] > Sidx)
+            arr = arr[0]
+            ind[j] = arr[-1]
 
-                'sel820',  # Record from MIT-BIH Supraventricular Arrhythmia Database
-                'sel853',  # Record from MIT-BIH Supraventricular Arrhythmia Database
+        ind = ind.astype(np.int64)
+        Pstart = Sidx[ind]
 
-                'sel16420',  # Record from MIT-BIH Normal Sinus Rhythm Database
-                'sel16795',  # Record from MIT-BIH Normal Sinus Rhythm Database
+        # Shift 40ms before P wave start
+        Pstart = Pstart - int(0.04*fields['fs'])
 
-                'sele0106',  # Record from European ST-T Database
-                'sele0121',  # Record from European ST-T Database
+        # Extract first channel
+        auxSig = signal[0:qu, 0]
 
-                'sel32',  # Record from ``sudden death'' patients from BIH
-                'sel49',  # Record from ``sudden death'' patients from BIH
+        # Beats separation and removing outliers
+        # Beats separation and removal of the vectors that contain more or equal than
+        # two beats based on QRS annotations
+        beats = list()
+        for k in range(len(Pstart)-1):
+            remove = (Ridx > Pstart[k]) & (Ridx < Pstart[k+1])
+            if np.sum(remove) < 2:
+                beats.append(auxSig[Pstart[k]:Pstart[k+1]])
 
-                'sel14046',  # Record from MIT-BIH Long-Term ECG Database
-                'sel15814',  # Record from MIT-BIH Long-Term ECG Database
-                ]
+        # Creating the list that will contain each beat per signal
+        beatsRe = list()
 
+        # processing each beat
+        for k in range(len(beats)):
+            # Padding data to avoid edge effects caused by resample
+            L = math.ceil(len(beats[k])*newFs/fields['fs'])
+            normBeat = list(reversed(beats[k])) + list(beats[k]) + list(reversed(beats[k]))
 
-    # Creating the train and test dataset, each datapoint has 512 samples and is zero padded
-    # beats bigger that 512 samples are discarded to avoid wrong split beats ans to reduce
-    # computation.
-    skip_beats = 0
-    samples = 512
-    qtdb_keys = list(qtdb.keys())
+            # resample beat by beat and saving it
+            res = resample_poly(normBeat, newFs, fields['fs'])
+            res = res[L-1:2*L-1]
+            beatsRe.append(res)
 
-    for i in range(len(qtdb_keys)):
-        signal_name = qtdb_keys[i]
+        # storing all beats in each corresponding signal, list of list
+        QTDatabaseSignals[register_name] = beatsRe
 
-        for b in qtdb[signal_name]:
-
-            b_np = np.zeros(samples)
-            b_sq = np.array(b)
-
-            # There are beats with more than 512 samples (could be up to 3500 samples)
-            # Creating a threshold of 512 - init_padding samples max. gives a good compromise between
-            # the samples amount and the discarded signals amount
-            # before:
-            # train: 74448  test: 13362
-            # after:
-            # train: 71893 test: 13306  (discarded train: ~4k datapoints test: ~50)
-
-            init_padding = 16
-            if b_sq.shape[0] > (samples - init_padding):
-                skip_beats += 1
-                continue
-
-            b_np[init_padding:b_sq.shape[0] + init_padding] = b_sq - (b_sq[0] + b_sq[-1]) / 2
-
-            if signal_name in test_set:
-                beats_test.append(b_np)
-            else:
-                beats_train.append(b_np)
-
-
-    # Noise was added in a proportion from 0.2 to 2 times the ECG signal amplitude
-    # Similar to
-    # W. Muldrow, R.G. Mark, & Moody, G. B. (1984).
-    # A noise stress test for arrhythmia detectors.
-    # Computers in Cardiology, 381–384
-
-    sn_train = []
-    sn_test = []
-
-    noise_index = 0
-    
-    def noise_pw(noise):
-        mean = np.mean(noise)
-        n = np.sqrt(np.mean((noise - mean) ** 2))
-        
-        return(n**2)
-    
-    def signal_pw(signal):
-        range = max(signal) - min(signal)
-        
-        return(range**2 / 8)
-
-    # Adding noise to train
-    rnd_train = np.random.randint(low=0, high=80, size=len(beats_train)) / 4
-    for i in range(len(beats_train)):
-        noise = noise_train[noise_index:noise_index + samples]
-        #beat_max_value = np.max(beats_train[i]) - np.min(beats_train[i])
-        #noise_max_value = np.max(noise) - np.min(noise)
-        #Ase = noise_max_value / beat_max_value
-        #alpha = rnd_train[i] / Ase
-        alpha = np.sqrt(10 ** (-rnd_train[i] / 10) * signal_pw(beats_train[i]) / noise_pw(noise))
-        signal_noise = beats_train[i] + alpha * noise
-        sn_train.append(signal_noise)
-        noise_index += samples
-
-        if noise_index > (len(noise_train) - samples):
-            noise_index = 0
-
-    # Adding noise to test
-    noise_index = 0
-    rnd_test = np.random.randint(low=0, high=80, size=len(beats_test)) / 4
-
-    # Saving the random array so we can use it on the amplitude segmentation tables
-    np.save('rnd_test.npy', rnd_test)
-    print('rnd_test shape: ' + str(rnd_test.shape))
-
-    for i in range(len(beats_test)):
-        noise = noise_test[noise_index:noise_index + samples]
-        #beat_max_value = np.max(beats_test[i]) - np.min(beats_test[i])
-        #noise_max_value = np.max(noise) - np.min(noise)
-        #Ase = noise_max_value / beat_max_value
-        #alpha = rnd_test[i] / Ase
-        alpha = np.sqrt(10 ** (-rnd_test[i] / 10) * signal_pw(beats_test[i]) / noise_pw(noise))
-        signal_noise = beats_test[i] + alpha * noise
-        sn_test.append(signal_noise)
-        noise_index += samples
-
-        if noise_index > (len(noise_test) - samples):
-            noise_index = 0
-
-
-    X_train = np.array(sn_train)
-    y_train = np.array(beats_train)
-
-    X_test = np.array(sn_test)
-    y_test = np.array(beats_test)
-
-    X_train = np.expand_dims(X_train, axis=2)
-    y_train = np.expand_dims(y_train, axis=2)
-
-    X_test = np.expand_dims(X_test, axis=2)
-    y_test = np.expand_dims(y_test, axis=2)
-
-
-    Dataset = [X_train, y_train, X_test, y_test]
-
-    print('Dataset ready to use.')
-
-    return Dataset
+    # Save Data
+    with open('data/QTDatabase.pkl', 'wb') as output:  # Overwrites any existing file.
+        pickle.dump(QTDatabaseSignals, output)
+    print('=========================================================')
+    print('MIT QT database saved as pickle file')
         
 
      
