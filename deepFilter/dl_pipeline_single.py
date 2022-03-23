@@ -15,7 +15,7 @@ from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping, T
 from keras import losses
 from sklearn.model_selection import train_test_split
 
-import deepFilter.dl_models as models
+import deepFilter.dl_models_single as models
 
 
 # Custom loss SSD
