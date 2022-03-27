@@ -1,85 +1,12 @@
-# DeepFilter
-For a more theoretical information please visit our paper in the journal **Biomedical Signal and Control**: 
-[https://www.sciencedirect.com/science/article/abs/pii/S1746809421005899](https://www.sciencedirect.com/science/article/abs/pii/S1746809421005899 "paper")  
-
-This repository contains the codes for DeepFilter a deep learning based Base line wander removal tool. 
-This repo follows the last version of the paper where some changes on the experiment scheme were requested
-by the reviewers.
-
-Since for us reproducibility is **KEY** on research, and we understand that some folks will find and read only the 
-Arxiv version, we have decided to create a separate repository 
-[https://github.com/fperdigon/DeepFilter_as_in_Arxiv](https://github.com/fperdigon/DeepFilter_as_in_Arxiv "repo")
-that follows the experiment scheme described in the preprint Arxiv paper 
-[https://arxiv.org/pdf/2101.03423.pdf](https://arxiv.org/pdf/2101.03423.pdf "paper") 
-
-This repository also contains other classical and deeplearning filters solutions implemented for comparison purposes.
-
-The deep learning models were implemented using Keras/Tensorflow framework.
-
-- [Introduction](#introduction)
-- [Results](#results)
-- [Installation](#installation)
-- [References](#references)
-- [How to cite DeepFilter](#citing-deepfilter)
-- [License](#license)
-
-# Introduction
-
-According to the World Health Organization, around 36% of the annual deaths are associated with cardiovascular 
-diseases and 90% of heart attacks are preventable. Electrocardiogram signal analysis in ambulatory electrocardiography, 
-during an exercise stress test, and in resting conditions allows cardiovascular disease diagnosis. 
-However, during the acquisition, there is a variety of noises that may damage the signal quality thereby compromising 
-their diagnostic potential. The baseline wander is one of the most undesirable noises.
- 
-In this work, we propose a novel algorithm for BLW noise filtering using deep learning techniques. The model performance 
-was validated using the QT Database and the MIT-BIH Noise Stress Test Database from Physionet. We implement an Inception 
-inspired multibranch model that by laveraging the use og multi path modules and dilated convolutions is capable of 
-filtering BLW while preserving ECG signal morphology and been computational efficient.  
-
-The following figure shows the multipath module using dilated convolutions. 
-![Multipath module](ReadmeImg/fig_filter_layer.png "Multipath module")
-
-The following figure shows the overall model architecture.
-![Model Architecture](ReadmeImg/fig_prop_arch.png "Model Architecture")
-
-In addition, we compared our approach against state-of-the-art methods using traditional filtering procedures as well as deep learning techniques.
-This other methods were implemented by us in python 
-* [FIR Filter](https://github.com/fperdigon/DeepFilter/blob/master/digitalFilters/dfilters.py#L17) (using Scipy python library). Reference paper: [Francisco Perdigón Romero, Liset Vázquez Romaguera, Carlos Román Vázquez-Seisdedos, Marly Guimarães Fer-nandes Costa, João Evangelista Neto, et al.  Baseline wander removal methods for ecg signals: A comparativestudy.arXiv preprint arXiv:1807.11359, 2018.](https://arxiv.org/pdf/1807.11359.pdf)
-* [IIR Filter](https://github.com/fperdigon/DeepFilter/blob/master/digitalFilters/dfilters.py#L100) (using Scipy python library). Reference paper: [Francisco Perdigón Romero, Liset Vázquez Romaguera, Carlos Román Vázquez-Seisdedos, Marly Guimarães Fer-nandes Costa, João Evangelista Neto, et al.  Baseline wander removal methods for ecg signals: A comparativestudy.arXiv preprint arXiv:1807.11359, 2018.](https://arxiv.org/pdf/1807.11359.pdf)
-* [Deep recurrent neural networks (DRRN)](https://github.com/fperdigon/DeepFilter/blob/master/deepFilter/dl_models.py#L511). Reference paper: [Karol Antczak. Deep recurrent neural networks for ecg signal denoising.arXiv preprint arXiv:1807.11551, 2018](https://arxiv.org/pdf/1807.11551.pdf)
-* [Full Convolutional Net Denoinsing Autoencoders (FCN-DAE)](https://github.com/fperdigon/DeepFilter/blob/master/deepFilter/dl_models.py#L386). Reference paper: [Hsin-Tien Chiang, Yi-Yen Hsieh, Szu-Wei Fu, Kuo-Hsuan Hung, Yu Tsao, and Shao-Yi Chien. Noise reduction in ecg signals using fully convolutional denoising autoencoders.IEEE Access, 7:60806–60813, 2019.](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8693790)
-
-The proposed approach yields the best results on four similarity metrics: the sum of squared distance, maximum absolute square, percentage of root distance, and cosine 
-similarity.
-
-## Results
-
-The following table present the quantitative results of DeepFilter Net compared on the same test set with other SOTA 
-methods.
-![Results table](ReadmeImg/results_table.png "Results table")
-
-Qualitative results
-
-The figure shows a portion of sele0106 ECG signal.
-![Original ECG signal](ReadmeImg/fig_sele0106_orig.png "Original ECG signal")
-
-Original ECG + BLW noise from the NSTDB.
-![Original ECG signal + BLW noise](ReadmeImg/fig_sele0106_orig+blw.png "Original ECG signal + BLW noise")
-
-The blue line is the ECG filtered using our approach.Metric values are also included.
-![ECG filtered using DeepFilter](ReadmeImg/fig_sele0106_dl_filter.png "ECG filtered using DeepFilter")
-
-The brown signal is the ECG recovered using the IIR filter, this image was included for visual comparison purposes. Metric values are also included.
-![ECG filtered using IIR classical filter](ReadmeImg/fig_sele0106_iir_filter.png "ECG filtered using IIR classical filter")
-
-
+# BA-Hagedorn
+This Repository contains the code used in the Bachelor thesis from Josch Hagedorn. It builts on the DeepFilter Repository (https://github.com/fperdigon/DeepFilter)
 ## Reproducibility
   
 ### Download this git repository and run local
 The firts step is to clone this repository
  
 ~~~
-git clone https://github.com/fperdigon/DeepFilter
+git clone https://github.com/JoschUniHD/BA-Hagedorn
 ~~~
 
 Then lets prepare the dataset.
@@ -117,28 +44,13 @@ conda activate DeepFilter
 Finally start the training and the experiments by running the command:
 
 ~~~
-python DeepFilter_main.py
+python Experiment_?_?_main.py
 ~~~
 
-This python script will train all the models, execute the experiments calculate the metrics and plot the result table 
-and some figures.
+This python script will train all the models and execute the experiments. There are 7 different experiments. After each one all resulting files should be movend into a new folder before the next experiment is executed. The evaluation of the results is done in the Jupyter Notebooks.
 
 If you have a Nvidia CUDA capable device for GPU acceleration this code will automatically use it (faster). Otherwise the 
 training will be done in CPU (slower).   
-
-## Citing DeepFilter
-
-When citing DeepFilter please use this BibTeX entry:
-   
-    @article{romero2021deepfilter,
-    title={DeepFilter: an ECG baseline wander removal filter using deep learning techniques},
-    author={Romero, Francisco P and Pi{\~n}ol, David C and V{\'a}zquez-Seisdedos, Carlos R},
-    journal={Biomedical Signal Processing and Control},
-    volume={70},
-    pages={102992},
-    year={2021},
-    publisher={Elsevier}
-    }
     
 ## License
 
