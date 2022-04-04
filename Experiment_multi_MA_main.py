@@ -21,7 +21,7 @@ from utils import visualization as vs
 from Data_Preparation import data_preparation_multi_MA as dp
 
 from digitalFilters.dfilters import FIR_test_Dataset, IIR_test_Dataset
-from deepFilter_multi.dl_pipeline import train_dl, test_dl
+from deepFilter.dl_pipeline_multi import train_dl, test_dl
 
 
 if __name__ == "__main__":
