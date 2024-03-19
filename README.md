@@ -1,5 +1,5 @@
 # BA-Hagedorn
-This Repository contains the code used in the Bachelor thesis from Josch Hagedorn. The thesis itself can be found as a pdf-file in this repository as well ([here](BA_Hagedorn.pdf)). It builts on the DeepFilter Repository (https://github.com/fperdigon/DeepFilter). Additional information can be found in the pdf-file.
+This repository contains the code used in Josch Hagedorn's bachelor's thesis. The thesis itself can be found as a [PDF file](BA_Hagedorn.pdf) in this repository. It builds on the DeepFilter repository (https://github.com/fperdigon/DeepFilter). Additional information can be found in the [PDF file](BA_Hagedorn.pdf).
 ## Reproducibility
   
 ### Download this git repository and run local
